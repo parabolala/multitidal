@@ -1,15 +1,12 @@
 #!/usr/bin/env python
-import tty
-import termios, sys
-
 from tornado.ioloop import IOLoop
 
-import ws
+import client_lib
 
 
 
 async def main():
-    client = ws.Client("ws://localhost:3000/console", 5)
+    client = client_lib.Client("ws://localhost:3000/console", 5)
     await client.connect()
 
 if __name__ == "__main__":
