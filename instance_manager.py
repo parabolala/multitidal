@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import logging
 import socket
 from concurrent.futures import ThreadPoolExecutor
+import uuid
 
 import docker
 
@@ -44,10 +45,11 @@ class InstanceManager(object):
         network = None
 
         host = socket.gethostname()
+        host = 'yvaravva-macbookpro2'
         try:
             global NUM_INSTANCES
             NUM_INSTANCES += 1
-            network = CLIENT.networks.create(name=str(NUM_INSTANCES))
+            network = CLIENT.networks.create(name=str(uuid.uuid4()))
 
             t_cont = CLIENT.containers.run(
                     image='quay.io/doubledensity/tidebox:0.2',
@@ -56,7 +58,7 @@ class InstanceManager(object):
                         '8090/tcp': (host, None),
                     },
                     detach=True,
-                    network=network.name,
+                    network=network.id,
             )
             # Resolve autoassigned ports.
             t_cont = CLIENT.containers.get(t_cont.id)
@@ -68,7 +70,7 @@ class InstanceManager(object):
                         '2222/tcp': (host, None),
                     },
                     detach=True,
-                    network=network.name,
+                    network=network.id,
             )
             # Resolve autoassigned ports.
             w_cont = CLIENT.containers.get(w_cont.id)

@@ -29,7 +29,8 @@ class Controller(object):
 
     def start_observation(self, observer, session_id):
         logging.info("Starting observation of session %r of %r", session_id, self._sessions)
-        assert session_id in self._sessions
+        if session_id not in self._sessions:
+            raise tornado.web.HTTPError(404, 'session %s not found' % session_id)
         observers = self._observers[session_id]
         if not observers:
             self._sessions[session_id].start_session()
@@ -122,9 +123,12 @@ class ConsoleHandler(tornado.websocket.WebSocketHandler):
 
     def stop_session(self):
         logging.info("Disonnecting console from ssh")
-        self.write_message(json.dumps({
-            'mode': 'idle',
-        }))
+        try:
+            self.write_message(json.dumps({
+                'mode': 'idle',
+            }))
+        except tornado.websocket.WebSocketClosedError:
+            pass
         logging.info("Stopping container")
         self._instance_manager.stop_instance(self._instance)
         self._instance = None
@@ -160,7 +164,12 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
         self.write_message(json.dumps({
             'status': 'connecting',
         }))
-        self._c.start_observation(self, self.i)
+        try:
+            self._c.start_observation(self, self.i)
+        except tornado.web.HTTPError:
+            self.write_message(json.dumps({
+                'status': 'unknown session',
+            }))
 
     def on_close(self):
         logging.info("Web stopped observing: %d" % self.i)
