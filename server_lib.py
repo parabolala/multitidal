@@ -6,11 +6,12 @@ import tornado.websocket
 import instance_manager
 
 
-
 class Controller(object):
     def __init__(self):
         self._sessions = {}
         self._observers = {}
+
+        self._list_watchers = []
 
     def list_sessions(self):
         return list(self._sessions.keys())
@@ -18,14 +19,31 @@ class Controller(object):
     def add_session(self, session):
         self._sessions[session.i] = session
         self._observers[session.i] = []
+        for w in self._list_watchers:
+            w.on_session_add(session.i)
+
+    def on_keystrokes(self, session_id):
+        for list_watcher in self._list_watchers:
+            list_watcher.on_keystrokes(session_id)
 
     def remove_session(self, session):
         logging.info("Removing session %r from %r", session.i, self._sessions)
         assert session.i in self._sessions
         session = self._sessions.pop(session.i)
         observers = self._observers.pop(session.i)
+
         for o in observers:
             o.on_console_close()
+        for w in self._list_watchers:
+            w.on_session_remove(session.i)
+
+    def add_list_watcher(self, handler):
+        self._list_watchers.append(handler)
+        for s in self._sessions:
+            handler.on_session_add(s)
+
+    def remove_list_watcher(self, handler):
+        self._list_watchers.remove(handler)
 
     def start_observation(self, observer, session_id):
         logging.info("Starting observation of session %r of %r", session_id, self._sessions)
@@ -61,6 +79,7 @@ class Application(tornado.web.Application):
                     c=c, im=self._instance_manager)),
                 (r"/", IndexHandler, dict(c=c)),
                 (r"/list", ListHandler, dict(c=c)),
+                (r"/watch_list", WatchListHandler, dict(c=c)),
                 (r"/observe/(\d+)", ObserveHandler, dict(c=c)),
         ]
         settings = dict(debug=True)
@@ -97,6 +116,9 @@ class ConsoleHandler(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         logging.info("message from {}: {}".format(self.i, message))
+        msg = json.loads(message)
+        if msg['client_command'] == 'keystrokes':
+            self._c.on_keystrokes(self.i)
 
     def get_mp3_url(self):
         return 'http://%s:%s/stream.mp3' % (
@@ -147,10 +169,41 @@ class IndexHandler(tornado.web.RequestHandler):
 class ListHandler(tornado.web.RequestHandler):
     def initialize(self, c):
         self._c = c
+        self.ws
 
     def get(self):
         self.write(json.dumps(self._c.list_sessions()))
 
+
+class WatchListHandler(tornado.websocket.WebSocketHandler):
+    def initialize(self, c):
+        self._controller = c
+
+    def open(self):
+        self._controller.add_list_watcher(self)
+
+    def on_close(self):
+        self._controller.remove_list_watcher(self)
+
+    def on_session_remove(self, session_id):
+        self.write_message(json.dumps({
+            'command': 'session_removej',
+            'session_id': session_id,
+        }))
+
+    def on_session_add(self, session_id):
+        self.write_message(json.dumps({
+            'command': 'session_add',
+            'session_id': session_id,
+        }))
+
+    def on_keystrokes(self, session_id):
+        self.write_message(json.dumps({
+            'command': 'keystrokes',
+            'keystrokes': {
+                'session_id': session_id,
+            },
+        }))
 
 class ObserveHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):

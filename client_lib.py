@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import pty
+import shutil
 import sys, tty, termios
 
 import tornado.iostream
@@ -41,7 +42,7 @@ async def send_stdin_to_ws_task(ws, on_finish_cb):
                         'client_command': 'keystrokes',
                         'keystrokes': [int(x) for x in content],
                     }))
-        print('no exc')
+        print('no exc', end='\r\n')
     except asyncio.CancelledError:
         print('stdin read task cancelled', end='\r\n')
     except Exception as e:
@@ -54,8 +55,14 @@ async def send_stdin_to_ws_task(ws, on_finish_cb):
 
 def run_ssh(host, port, login='tidal', password='livecoding'):
     os.environ['SSHPASS'] = password
-    #args = ['sshpass', '%s@%s' % (login, host), '-p', str(port), '-e']
-    args = ['banner', 'x']
+    ssh_cmd = [
+        'ssh',
+        '-o', 'StrictHostKeyChecking=no',  # Skip fingerpint warning.
+        '%s@%s' % (login, host), '-p', str(port)]
+    sshpass_cmd = [shutil.which('sshpass'), '-e'] + ssh_cmd
+    args = sshpass_cmd
+    #args = ['banner', 'x']
+    print(' '.join(args))
     res = pty.spawn(args)
     sys.stdout.flush()
     print('ssh returned %s' % res)
