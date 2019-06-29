@@ -144,4 +144,4 @@ class Client(object):
         if self.ws is None:
             await self.connect()
         else:
-            self.ws.write_message("keep alive")
+            self.ws.write_message(json.dumps({'client_command': "keep alive"}))

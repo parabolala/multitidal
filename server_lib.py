@@ -2,6 +2,7 @@ import json
 import logging
 
 import tornado.websocket
+import tornado.template
 
 import instance_manager
 
@@ -74,6 +75,11 @@ class Application(tornado.web.Application):
     def __init__(self):
         self._instance_manager = instance_manager.InstanceManager()
         self._c = c = Controller()
+        settings = dict(
+                debug=True,
+                template_path='templates',
+                static_path='media',
+        )
         handlers = [
                 (r"/console", ConsoleHandler, dict(
                     c=c, im=self._instance_manager)),
@@ -81,8 +87,9 @@ class Application(tornado.web.Application):
                 (r"/list", ListHandler, dict(c=c)),
                 (r"/watch_list", WatchListHandler, dict(c=c)),
                 (r"/observe/(\d+)", ObserveHandler, dict(c=c)),
+                (r"/media/(.*)", tornado.web.StaticFileHandler,
+                     dict(path=settings['static_path'])),
         ]
-        settings = dict(debug=True)
         tornado.web.Application.__init__(self, handlers, **settings)
 
 
@@ -163,7 +170,7 @@ class IndexHandler(tornado.web.RequestHandler):
         self._c = c
 
     def get(self):
-        self.write("Hello, world, sessions: %s " % self._c.list_sessions())
+        self.render('index.html')
 
 
 class ListHandler(tornado.web.RequestHandler):
@@ -187,7 +194,7 @@ class WatchListHandler(tornado.websocket.WebSocketHandler):
 
     def on_session_remove(self, session_id):
         self.write_message(json.dumps({
-            'command': 'session_removej',
+            'command': 'session_remove',
             'session_id': session_id,
         }))
 

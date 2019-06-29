@@ -118,5 +118,4 @@ class InstanceManager(object):
                           "instances are still alive")
             for instance in self._instances.keys()[:]:
                 self.stop_instance(instance)
-        super(InstanceManager, self).__del__()
 
