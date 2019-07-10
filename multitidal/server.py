@@ -4,9 +4,9 @@ import tornado.web
 
 from tornado.options import define, options
 
-import server_lib
+from . import server_lib
 
-define("port", default=3000, help="run on the given port", type=int)
+define('port', default=3000, help='run on the given port', type=int)
 
 
 def main():
@@ -16,5 +16,5 @@ def main():
     tornado.ioloop.IOLoop.instance().start()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
