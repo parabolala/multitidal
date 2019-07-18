@@ -33,8 +33,9 @@ class SessionsList extends React.Component {
             var newSessions = this.state.sessions.slice(0);
             newSessions.push(
                              {
-                                 id: message.session_id,
+                                 id: message.session.id,
                                  state: 0,
+                                 kb: message.session.kb,
                                  timeout: null
                              });
             this.setState({
@@ -42,12 +43,12 @@ class SessionsList extends React.Component {
             });
         } else if (message.command === "session_remove") {
             var newSessions = this.state.sessions.filter((session) => 
-                session.id !== message.session_id);
+                session.id !== message.session.id);
             this.setState({
                 sessions: newSessions
             });
         } else if (message.command === "keystrokes") {
-            const s_id = message.keystrokes.session_id;
+            const s_id = message.keystrokes.session.id;
             this.activateSession(s_id);
         }
     }
@@ -110,7 +111,12 @@ class SessionsList extends React.Component {
           if (session.state === 1) {
               className += " keystrokes";
           }
-          return <li key={session.id} className={className} onClick={(e) => that.onSessionClick(session)}>session: {session.id}, state: {session.state}</li>
+          return <li
+                    key={session.id}
+                    className={className}
+                    onClick={(e) => that.onSessionClick(session)}>
+                    {session.kb?"[kb] ":""}session: {session.id}, state: {session.state}
+                </li>
         });
     }
 

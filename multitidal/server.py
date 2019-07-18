@@ -4,7 +4,7 @@ import tornado.web
 
 from tornado.options import define, options
 
-from . import server_lib
+from multitidal import server_lib
 
 define('port', default=3000, help='run on the given port', type=int)
 

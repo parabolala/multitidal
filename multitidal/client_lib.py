@@ -8,7 +8,7 @@ import tty
 import termios
 
 import tornado.iostream
-from tornado.ioloop import IOLoop, PeriodicCallback
+from tornado.ioloop import IOLoop
 from tornado.websocket import websocket_connect
 
 ioloop = tornado.ioloop.IOLoop.instance()
@@ -79,7 +79,6 @@ class Client:
         self.timeout = timeout
         self.ioloop = IOLoop.instance()
         self.ws = None
-        PeriodicCallback(self.keep_alive, 20000).start()
 
         self.send_stdin_task = None
 
@@ -145,9 +144,3 @@ class Client:
                 print('restarting ile task')
                 self.ioloop.spawn_callback(self.run_idle)
                 print('restarted idle task')
-
-    async def keep_alive(self):
-        if self.ws is None:
-            await self.connect()
-        else:
-            self.ws.write_message(json.dumps({'client_command': 'keep alive'}))

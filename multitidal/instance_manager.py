@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import logging
 import socket
 from concurrent.futures import ThreadPoolExecutor
@@ -13,22 +12,88 @@ EXECUTOR = ThreadPoolExecutor(max_workers=4)
 CLIENT = docker.client.from_env()
 
 
-@dataclass
-class Instance:
+SSH_PORT_NAME = '22/tcp'
+MP3_PORT_NAME = '8090/tcp'
+WEBSSH_PORT_NAME = '2222/tcp'
+
+
+class MusicBox:
     id: int
-    network: str
+    network: str = None
     hostname: str
     ssh_port: int
     mp3_port: int
     webssh_port: int
 
-    tidal_container: docker.models.containers.Container
-    webssh_container: docker.models.containers.Container
+    tidal_container: docker.models.containers.Container = None
+    webssh_container: docker.models.containers.Container = None
 
+    _cleaned_up = True
 
-SSH_PORT_NAME = '22/tcp'
-MP3_PORT_NAME = '8090/tcp'
-WEBSSH_PORT_NAME = '2222/tcp'
+    def start(self, hostname):
+        self._cleaned_up = False
+        try:
+            network = CLIENT.networks.create(name=str(uuid.uuid4()))
+            self.id = network.name
+            self.network = network
+
+            t_cont = CLIENT.containers.run(
+                image='quay.io/doubledensity/tidebox:0.2',
+                ports={
+                    '22/tcp': ('0.0.0.0', None),
+                    '8090/tcp': ('0.0.0.0', None),
+                },
+                detach=True,
+                network=network.id,
+            )
+            # Resolve autoassigned ports.
+            t_cont = CLIENT.containers.get(t_cont.id)
+            logging.info('Started tidal container.')
+            wait_for_healthy_tidal(t_cont)
+            self.tidal_container = t_cont
+
+            w_cont = CLIENT.containers.run(
+                image='webssh2',
+                ports={
+                    '2222/tcp': ('0.0.0.0', None),
+                },
+                detach=True,
+                network=network.id,
+            )
+            # Resolve autoassigned ports.
+            w_cont = CLIENT.containers.get(w_cont.id)
+            logging.info('Started webssh2 container')
+            wait_for_healthy_webssh(w_cont)
+            self.webssh_container = w_cont
+
+            self.hostname = hostname
+            self.ssh_port = get_port(t_cont, SSH_PORT_NAME)
+            self.mp3_port = get_port(t_cont, MP3_PORT_NAME)
+            self.webssh_port = get_port(w_cont, WEBSSH_PORT_NAME)
+        except Exception:
+            self.stop()
+            raise
+
+    def stop(self):
+        if self._cleaned_up:
+            return
+        self._cleaned_up = True
+
+        if self.tidal_container:
+            logging.info('Stopping tidal container')
+            self.tidal_container.stop()
+            self.tidal_container.remove()
+            self.tidal_container = None
+        if self.webssh_container:
+            logging.info('Stopping webssh container')
+            self.webssh_container.stop()
+            self.webssh_container.remove()
+        if self.network:
+            self.network.remove()
+
+    def __del__(self):
+        if not self._cleaned_up:
+            logging.warning("Instance being destroyed without cleaning up")
 
 
 def get_port(container, port_name):
@@ -78,76 +143,16 @@ class InstanceManager:
     def __init__(self):
         self._instances = {}
 
-    def start_one(self, hostname):
-        t_cont = None
-        w_cont = None
-        network = None
+    def start_one(self, hostname) -> MusicBox:
+        instance = MusicBox()
+        instance.start(hostname)
+        self._instances[instance.id] = instance
 
-        try:
-            network = CLIENT.networks.create(name=str(uuid.uuid4()))
-
-            t_cont = CLIENT.containers.run(
-                image='quay.io/doubledensity/tidebox:0.2',
-                ports={
-                    '22/tcp': ('0.0.0.0', None),
-                    '8090/tcp': ('0.0.0.0', None),
-                },
-                detach=True,
-                network=network.id,
-            )
-            # Resolve autoassigned ports.
-            t_cont = CLIENT.containers.get(t_cont.id)
-            logging.info('Started tidal container.')
-            wait_for_healthy_tidal(t_cont)
-
-            w_cont = CLIENT.containers.run(
-                image='webssh2',
-                ports={
-                    '2222/tcp': ('0.0.0.0', None),
-                },
-                detach=True,
-                network=network.id,
-            )
-            # Resolve autoassigned ports.
-            w_cont = CLIENT.containers.get(w_cont.id)
-            logging.info('Started webssh2 container')
-            wait_for_healthy_webssh(w_cont)
-
-            instance = Instance(
-                id=network.name,
-                network=network,
-                tidal_container=t_cont,
-                webssh_container=w_cont,
-
-                hostname=hostname,
-                ssh_port=get_port(t_cont, SSH_PORT_NAME),
-                mp3_port=get_port(t_cont, MP3_PORT_NAME),
-                webssh_port=get_port(w_cont, WEBSSH_PORT_NAME),
-            )
-            self._instances[instance.id] = instance
-
-            return instance
-        except Exception:
-            if t_cont:
-                t_cont.stop()
-                t_cont.remove()
-            if w_cont:
-                w_cont.stop()
-                w_cont.remove()
-            if network:
-                network.remove()
-            raise
+        return instance
 
     def stop_instance(self, instance):
         instance = self._instances.pop(instance.id)
-        logging.info('Stopping webssh container')
-        instance.webssh_container.stop()
-        instance.webssh_container.remove()
-        logging.info('Stopping tidal container')
-        instance.tidal_container.stop()
-        instance.tidal_container.remove()
-        instance.network.remove()
-        logging.info('Done')
+        instance.stop()
 
     def __del__(self):
         if self._instances:

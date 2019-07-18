@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from tornado.ioloop import IOLoop
 
-from . import client_lib
+from multitidal import client_lib
 
 
 async def main():
