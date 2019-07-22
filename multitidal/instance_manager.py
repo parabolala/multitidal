@@ -137,26 +137,3 @@ def wait_for_healthy_webssh(container):
     else:
         raise Exception('Tidal container SSH port never became healthy')
 
-
-class InstanceManager:
-
-    def __init__(self):
-        self._instances = {}
-
-    def start_one(self, hostname) -> MusicBox:
-        instance = MusicBox()
-        instance.start(hostname)
-        self._instances[instance.id] = instance
-
-        return instance
-
-    def stop_instance(self, instance):
-        instance = self._instances.pop(instance.id)
-        instance.stop()
-
-    def __del__(self):
-        if self._instances:
-            logging.error('InstanceManager being destroyed while some '
-                          'instances are still alive')
-            for instance in self._instances.keys()[:]:
-                self.stop_instance(instance)
