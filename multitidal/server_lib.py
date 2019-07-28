@@ -96,7 +96,7 @@ class KeyboardHandler(tornado.websocket.WebSocketHandler, SessionObserver):
 
 
 class Session:
-    IDLE, STARTING, RUNNING, STOPPING = range(4)
+    IDLE, STARTING, RUNNING, FAILED, STOPPING = range(5)
 
     i = 0
 
@@ -134,10 +134,9 @@ class Session:
                 await IOLoop.instance().run_in_executor(
                         e, functools.partial(self._musicbox.start,
                             hostname='localhost')) # TODO hostname
-        except Error:
-            self._change_state(self.STOPPING)
-            self._change_state(self.IDLE)
-            return
+        except (Error, instance_manager.Error) as e:
+            self._change_state(self.FAILED)
+            raise Error("Failed to start session: %s" % str(e))
         self._change_state(self.RUNNING)
 
     async def stop(self):
@@ -264,7 +263,7 @@ class SessionsController:
             self.remove_session(session)
 
     def stop(self):
-        for session in self._sessions.values()[:]:
+        for session in list(self._sessions.values()):
             session.stop()
             self.remove_session(session)
 
@@ -343,6 +342,8 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
             self.write_message(json.dumps({
                 'status': 'unknown session',
             }))
+        except Error:
+            logging.error("Failed to start observation")
 
     def open(self, session_id):  # pylint: disable=arguments-differ
         self.i = ObserveHandler.i
@@ -385,6 +386,15 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
                 'id': session.i,
                 'status': 'connecting',
             }))
+        elif state == Session.FAILED:
+            self.write_message(json.dumps({
+                'id': session.i,
+                'status': 'error',
+            }))
+            self.close()
+        else:
+            logging.error("Unexpected session state in WS handler: %s",
+                          state)
 
 
     def on_connection_details(self, ssh_url, mp3_url):

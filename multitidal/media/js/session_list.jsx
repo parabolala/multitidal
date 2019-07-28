@@ -34,7 +34,7 @@ class SessionsList extends React.Component {
             newSessions.push(
                              {
                                  id: message.session.id,
-                                 state: 0,
+                                 state: message.session.state,
                                  kb: message.session.kb,
                                  timeout: null
                              });
@@ -44,6 +44,13 @@ class SessionsList extends React.Component {
         } else if (message.command === "session_remove") {
             var newSessions = this.state.sessions.filter((session) => 
                 session.id !== message.session.id);
+            this.setState({
+                sessions: newSessions
+            });
+        } else if (message.command === "session_state") {
+            var newSessions = this.state.sessions.map((session) => 
+                (session.id !== message.session.id ? session : message.session)
+            );
             this.setState({
                 sessions: newSessions
             });
@@ -126,6 +133,9 @@ class SessionsList extends React.Component {
         <ul>
             {listItems}
         </ul>
+        <a href="#" onClick={(e) => this.onSessionClick({id: 'new'})}>
+            New session
+        </a>
       </div>
     );
   }
@@ -156,7 +166,7 @@ class Main extends React.Component {
         }
         return (
             <div>
-                <a href="#" onClick={this.cancelObservation.bind(this)}>Cancel</a>,
+                <a href="#" onClick={this.cancelObservation.bind(this)}>Leave</a>
                 <Observation session_id={this.state.session_id} />
             </div>
         );

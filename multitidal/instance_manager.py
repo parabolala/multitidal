@@ -17,6 +17,10 @@ MP3_PORT_NAME = '8090/tcp'
 WEBSSH_PORT_NAME = '2222/tcp'
 
 
+class Error(Exception):
+    pass
+
+
 class MusicBox:
     id: int
     network: str = None
@@ -70,9 +74,9 @@ class MusicBox:
             self.ssh_port = get_port(t_cont, SSH_PORT_NAME)
             self.mp3_port = get_port(t_cont, MP3_PORT_NAME)
             self.webssh_port = get_port(w_cont, WEBSSH_PORT_NAME)
-        except Exception:
+        except Exception as e:
             self.stop()
-            raise
+            raise Error("Failed to start container: %s" % str(e))
 
     def stop(self):
         if self._cleaned_up:
