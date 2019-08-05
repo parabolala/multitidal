@@ -6,38 +6,21 @@
   <script src="/media/js/react.development.js"></script>
   <script src="/media/js/react-dom.development.js"></script>
   <script src="/media/js/babel.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="/media/css/main.css">
 
-<style>
-#sessions-list-container {
-  width: 100%;
-  max-width: 80em;
-  text-align: center;
-  margin:auto;
-  border: 1px solid black;
-}
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="/media/bootstrap/css/bootstrap.min.css">
 
-.session {
-  background-color: #ccffcc;
-
-}
-.session.keystrokes {
-  background-color: #ccccff;
-}
-
-.ssh {
-  width: 100%;
-  height: 800px;
-}
-
-.ssh-frame {
-  width: 100%;
-  height: 100%;
-}
-</style>
+  <!-- TODO local -->
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
 
 <body>
 
-<div id="sessions-list-container"></div>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/media/bootstrap/js/bootstrap.min.js"></script>
+
+<div id="container"></div>
 
 <script src="{{ static_url("js/session_list.jsx") }}" type="text/babel"></script>
 </body>

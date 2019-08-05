@@ -6,12 +6,20 @@ import shutil
 import sys
 import tty
 import termios
+import time
+import threading
 
 import tornado.iostream
 from tornado.ioloop import IOLoop
 from tornado.websocket import websocket_connect
 
 ioloop = tornado.ioloop.IOLoop.instance()
+
+
+SSH_LOGIN = 'root'
+SSH_PASSWORD = 'algorave'
+
+SCREEN_TO_SCREEN_0_SEQ = b'ls -l\r\x1bOC' + b'\x010'  # ^A 0
 
 
 async def send_stdin_to_ws_task(ws, on_finish_cb):
@@ -55,7 +63,7 @@ async def send_stdin_to_ws_task(ws, on_finish_cb):
         print('finally')
 
 
-def run_ssh(host, port, login='tidal', password='livecoding'):
+async def run_ssh(host, port, login=SSH_LOGIN, password=SSH_PASSWORD):
     os.environ['SSHPASS'] = password
     ssh_cmd = [
         'ssh',
@@ -66,8 +74,30 @@ def run_ssh(host, port, login='tidal', password='livecoding'):
     sshpass_cmd = [shutil.which('sshpass'), '-e'] + ssh_cmd
     args = sshpass_cmd
     print(' '.join(args))
-    res = pty.spawn(args)
-    sys.stdout.flush()
+
+    stdin_buf=b''
+    e = threading.Event()
+    master_buf =b''
+    def stdin_read(fd):
+        if not e.is_set():
+            e.set()
+            return SCREEN_TO_SCREEN_0_SEQ + os.read(fd, 1024)
+
+        #nonlocal stdin_buf
+        b = os.read(fd, 1024)
+        #stdin_buf += b
+        return b
+    def master_read(fd):
+        #nonlocal master_buf
+        b = os.read(fd, 1024)
+        #master_buf += b
+        return b
+    # Let Web UI connect to screen 0 first.
+    time.sleep(3)
+    res = pty.spawn(args, master_read=master_read, stdin_read=stdin_read)
+    #sys.stdout.write("master:\n%s\n"% master_buf)
+    #sys.stdout.write("stdin:\n%s\n"% stdin_buf)
+    #sys.stdout.flush()
     print('ssh returned %s' % res)
 
 
@@ -96,7 +126,7 @@ class Client:
             self.ioloop.spawn_callback(self.run)
 
     def finish_ws(self):
-        if not self.ws:
+        if self.ws:
             self.ws.close()
             self.ws = None
 
@@ -121,7 +151,7 @@ class Client:
 
     async def run_ssh(self, host, port):
         # Blocks ioloop
-        run_ssh(host, port)
+        await run_ssh(host, port)
 
     async def run(self):
         while True:
@@ -141,6 +171,9 @@ class Client:
                       (host, port), end='\r\n')
                 await self.stop_idle()
                 await self.run_ssh(host, port)
-                print('restarting ile task')
-                self.ioloop.spawn_callback(self.run_idle)
-                print('restarted idle task')
+                print('restarting idle task')
+                self.finish_ws()
+                await self.connect()
+                break
+                #self.ioloop.spawn_callback(self.run_idle)
+                #print('restarted idle task')

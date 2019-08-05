@@ -1,0 +1,27 @@
+
+#container {
+  width: 100%;
+  max-width: 80em;
+  text-align: center;
+  margin:auto;
+  border: 1px solid black;
+}
+
+.session {
+  background-color: #ccffcc;
+
+}
+.session.keystrokes {
+  background-color: #ccccff;
+}
+
+.ssh {
+  width: 100%;
+  height: 800px;
+}
+
+.ssh-frame {
+  width: 100%;
+  height: 100%;
+}
+

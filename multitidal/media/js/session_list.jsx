@@ -7,7 +7,7 @@ class SessionsList extends React.Component {
 
     componentDidMount() {
         this.ws = new WebSocket(
-            "ws://localhost:3000/watch_list");
+            "ws://" + window.location.host + "/watch_list");
         // Connection opened
         this.ws.addEventListener('open', function (event) {
             console.log('opened');
@@ -28,6 +28,7 @@ class SessionsList extends React.Component {
 
     onMessage(message) {
         console.log(message);
+        console.log(this.state.sessions);
         
         if (message.command === "session_add") {
             var newSessions = this.state.sessions.slice(0);
@@ -36,6 +37,7 @@ class SessionsList extends React.Component {
                                  id: message.session.id,
                                  state: message.session.state,
                                  kb: message.session.kb,
+                                 kb_pressed: false,
                                  timeout: null
                              });
             this.setState({
@@ -66,8 +68,8 @@ class SessionsList extends React.Component {
           var newSession = session;
           if (session.id === session_id) {
               newSession = Object.assign({}, session);
-              if (session.state === 0) {
-                  newSession.state = 1;
+              if (session.state === "idle" && session.kb_pressed === false) {
+                  newSession.kb_pressed = true;
               } else {
                   clearTimeout(session.timeout);
               }
@@ -86,8 +88,8 @@ class SessionsList extends React.Component {
           var newSession = session;
           if (session.id === session_id) {
               newSession = Object.assign({}, session);
-              if (session.state === 1) {
-                  newSession.state = 0;
+              if (session.kb_pressed === true) {
+                  newSession.kb_pressed = false;
               } 
               clearTimeout(session.timeout);
               newSession.timeout = null;
@@ -100,42 +102,99 @@ class SessionsList extends React.Component {
 
   onSessionClick(session) {
       console.log("Clicked");
-      this.props.onSessionChosen(session.id);
+      this.props.onSessionChosen(session);
   }
 
   render() {
-    var listItems;
     var that = this;
     if (this.state.sessions.length > 0) {
       console.log("Rendering sessions: ");
       console.log(this.state.sessions[0].state);
-      }
+    }
+    var body, list;
     if (this.state.sessions.length === 0) {
-      listItems = <li> no session </li>;
+      body = <a href="#" className="list-group-item list-group-item-warning">
+               You're the first one here. Start a new playground with a button below.
+             </a>;
+      list = null;
     } else {
-        listItems = this.state.sessions.map(function(session) { 
-          let className = "session";
-          if (session.state === 1) {
-              className += " keystrokes";
+        var listItems = this.state.sessions.map(function(session) { 
+          let className = "session list-group-item ";
+          if (session.kb_pressed) {
+              className += "list-group-item-danger";
+          } else {
+              switch (session.state) {
+                  case "idle":
+                      className += "list-group-item-warning";
+                      break;
+                  case "running":
+                  case "starting":
+                      className += "list-group-item-info";
+                      break;
+                  case "stopping":
+                      className += "list-group-item-danger";
+                      break;
+                  default:
+                      console.log("No list item class for session in state: " + session.state);
+              }
           }
-          return <li
+          return <a
                     key={session.id}
                     className={className}
-                    onClick={(e) => that.onSessionClick(session)}>
-                    {session.kb?"[kb] ":""}session: {session.id}, state: {session.state}
-                </li>
+                    onClick={(session.state === "idle" || session.state === "running" ? 
+                              (e) => that.onSessionClick(session) :
+                              null)}
+                    href="#">
+                    Playground: {session.id} [{session.state}]
+                    <span className="badge">{session.kb?"kb ":""}</span>
+                </a>
         });
+        list = <div className="list-group">
+                {listItems}
+               </div>;
+        let n = this.state.sessions.length;
+        body = <div className="panel-body">
+                 <p style={{clear:"none", float:"left"}}>
+                   There {n>1?"are":"is"} currently {n} active playground{n > 1?"s":""}.
+                   Pick one to join or create a new one.
+                </p>
+                <div style={{float:"right", textAlign: "left"}}>
+                    Legend:
+                    <ul className="list-group">
+                        <li className="list-group-item list-group-item-success">
+                            Someone's active here.
+                        </li>
+                        <li className="list-group-item list-group-item-info">
+                            Someone's playing here now.
+                        </li>
+                        <li className="list-group-item list-group-item-warning">
+                            Session with a physical keyboard and no-one attached 
+                            &nbsp;<span className="badge">kb</span>
+                        </li>
+                    </ul>
+                
+                </div>
+               </div>;
     }
 
     return (
-      <div className="shopping-list">
-        <h1>Sessions List </h1>
-        <ul>
-            {listItems}
-        </ul>
-        <a href="#" onClick={(e) => this.onSessionClick({id: 'new'})}>
-            New session
-        </a>
+      <div className="panel panel-primary">
+            
+        <div className="panel-heading">
+          <h3 className="panel-title">
+              Pick your playground
+          </h3>
+        </div>
+        {body}
+        {list}
+        <div className="list-group">
+          <a href="#"
+              className="list-group-item list-group-item-success"
+              onClick={(e) => this.onSessionClick({id: 'new'})}
+              >
+              Start a new playground
+          </a>
+        </div>
       </div>
     );
   }
@@ -145,14 +204,14 @@ class Main extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            session_id: null
+            session: null
         };
     }
 
-    observeSession(session_id) {
-        console.log("About to observe session " + session_id);
+    observeSession(session) {
+        console.log("About to observe session " + session);
         this.setState({
-            session_id: session_id
+            session: session
         });
     }
 
@@ -161,13 +220,25 @@ class Main extends React.Component {
     }
 
     render(){ 
-        if (this.state.session_id === null) {
+        if (this.state.session === null) {
             return <SessionsList onSessionChosen={this.observeSession.bind(this)} />;
         }
         return (
-            <div>
-                <a href="#" onClick={this.cancelObservation.bind(this)}>Leave</a>
-                <Observation session_id={this.state.session_id} />
+            <div className="panel pandel-default">
+              <div className="panel-heading">
+                <h3 className="panel-title">
+                    Livecoding playground
+                    &nbsp;
+                    <a href="#" onClick={this.cancelObservation.bind(this)}>
+                        <span className="label label-danger">
+                          Leave
+                        </span>
+                    </a>
+                </h3>
+              </div>
+              <div className="panel-body">
+                <Observation session={this.state.session} />
+              </div>
             </div>
         );
     }   
@@ -225,12 +296,13 @@ class Observation extends React.Component {
         this.ws = null;
         this.state = {
             ssh_url: null,
-            mp3_url: null
+            mp3_url: null,
+            lost_keyboard: false
         };
     }
 
     componentDidMount() {
-        this.ws = new WebSocket("ws://localhost:3000/observe/" + this.props.session_id);
+        this.ws = new WebSocket("ws://" + window.location.host + "/observe/" + this.props.session.id);
         // Connection opened
         this.ws.addEventListener('open', function (event) {
             console.log('opened');
@@ -255,7 +327,8 @@ class Observation extends React.Component {
         if (data.status === 'connected') {
             this.setState({
                 ssh_url: data.ssh.url,
-                mp3_url: data.mp3.url
+                mp3_url: data.mp3.url,
+                lost_keyboard: this.props.session.kb && !data.session.kb
             });
         }
     }
@@ -266,6 +339,10 @@ class Observation extends React.Component {
         }
         return (
                 <div className="observation">
+                  {this.state.lost_keyboard ?
+                   <div class="alert alert-danger" role="alert">
+                      The keyboard is lost :( Please reconnect to use external keyboard.
+                   </div> : ""}
                   <MP3Player src={this.state.mp3_url} />
                   <SSHFrame src={this.state.ssh_url} />
                 </div>
@@ -277,5 +354,5 @@ class Observation extends React.Component {
 
 
 
-const domContainer = document.querySelector('#sessions-list-container');
+const domContainer = document.querySelector('#container');
 ReactDOM.render(<Main />, domContainer);
