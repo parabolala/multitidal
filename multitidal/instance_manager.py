@@ -1,6 +1,7 @@
 import logging
 import socket
 from concurrent.futures import ThreadPoolExecutor
+import os
 import uuid
 import time
 
@@ -15,6 +16,9 @@ CLIENT = docker.client.from_env()
 SSH_PORT_NAME = '22/tcp'
 MP3_PORT_NAME = '8090/tcp'
 WEBSSH_PORT_NAME = '2222/tcp'
+
+WEBSSH_CONFIG_PATH = os.path.join(os.path.dirname(__file__),
+                                  'resources/webssh_config.json')
 
 
 class Error(Exception):
@@ -84,6 +88,11 @@ class MusicBox:
                 },
                 detach=True,
                 network=network.id,
+                volumes={
+                    WEBSSH_CONFIG_PATH: {
+                        'bind': '/usr/src/config.json',
+                        'mode': 'ro'},
+                },
             )
             # Resolve autoassigned ports.
             w_cont = CLIENT.containers.get(w_cont.id)

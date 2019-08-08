@@ -153,7 +153,7 @@ class SessionsList extends React.Component {
                 {listItems}
                </div>;
         let n = this.state.sessions.length;
-        body = <div className="panel-body">
+        body =  <div>
                  <p style={{clear:"none", float:"left"}}>
                    There {n>1?"are":"is"} currently {n} active playground{n > 1?"s":""}.
                    Pick one to join or create a new one.
@@ -172,29 +172,30 @@ class SessionsList extends React.Component {
                             &nbsp;<span className="badge">kb</span>
                         </li>
                     </ul>
-                
                 </div>
                </div>;
     }
 
     return (
-      <div className="panel panel-primary">
+      <div className="panel panel-default">
             
         <div className="panel-heading">
           <h3 className="panel-title">
               Pick your playground
           </h3>
         </div>
-        {body}
-        {list}
-        <div className="list-group">
-          <a href="#"
-              className="list-group-item list-group-item-success"
-              onClick={(e) => this.onSessionClick({id: 'new'})}
-              >
-              Start a new playground
-          </a>
+        <div className="panel-body">
+          {body}
         </div>
+          {list}
+          <div className="list-group">
+            <a href="#"
+                className="list-group-item list-group-item-success"
+                onClick={(e) => this.onSessionClick({id: 'new'})}
+                >
+                Start a new playground
+            </a>
+          </div>
       </div>
     );
   }
@@ -224,7 +225,7 @@ class Main extends React.Component {
             return <SessionsList onSessionChosen={this.observeSession.bind(this)} />;
         }
         return (
-            <div className="panel pandel-default">
+            <div className="panel panel-default">
               <div className="panel-heading">
                 <h3 className="panel-title">
                     Livecoding playground
@@ -334,25 +335,29 @@ class Observation extends React.Component {
     }
 
     render() {
+        let body;
         if (!this.state.ssh_url) {
-            return '';
+            body = (<div className="progress">
+                       <div className="progress-bar progress-bar-success progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style={{width: "100%"}} >
+                           Loading...
+                       </div>
+                     </div>
+                    );
+        } else {
+            body = (
+                    <div className="observation">
+                      {this.state.lost_keyboard ?
+                       <div class="alert alert-danger" role="alert">
+                          The keyboard is lost :( Please reconnect to use external keyboard.
+                       </div> : ""}
+                      <MP3Player src={this.state.mp3_url} />
+                      <SSHFrame src={this.state.ssh_url} />
+                    </div>
+            );
         }
-        return (
-                <div className="observation">
-                  {this.state.lost_keyboard ?
-                   <div class="alert alert-danger" role="alert">
-                      The keyboard is lost :( Please reconnect to use external keyboard.
-                   </div> : ""}
-                  <MP3Player src={this.state.mp3_url} />
-                  <SSHFrame src={this.state.ssh_url} />
-                </div>
-        );
+        return  body;
     }
 }
-
-
-
-
 
 const domContainer = document.querySelector('#container');
 ReactDOM.render(<Main />, domContainer);
