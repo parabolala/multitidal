@@ -353,8 +353,8 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
             self.write_message(json.dumps({
                 'status': 'unknown session',
             }))
-        except Error:
-            logging.error("Failed to start observation")
+        except Error as e:
+            logging.error("Failed to start observation: %s" % str(e))
 
     def open(self, session_id):  # pylint: disable=arguments-differ
         self.i = ObserveHandler.i

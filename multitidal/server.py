@@ -21,7 +21,7 @@ def main():
     tornado.options.parse_command_line()
     app = server_lib.Application()
     app.listen(options.port)
-    print('Server started')
+    print('Server started at port %d' % options.port)
     try:
         tornado.ioloop.IOLoop.instance().start()
     except Exception:

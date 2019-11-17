@@ -56,7 +56,7 @@ class MusicBox:
 
     def _supertidebox_container(self):
         t_cont = CLIENT.containers.run(
-            image='supertidebox',
+            image='parabolala/supertidebox:1',
             ports={
                 '22/tcp': ('0.0.0.0', None),
                 '8090/tcp': ('0.0.0.0', None),
@@ -82,7 +82,7 @@ class MusicBox:
             self.tidal_container = t_cont = self._supertidebox_container()
 
             w_cont = CLIENT.containers.run(
-                image='webssh2',
+                image='parabolala/webssh2:1',
                 ports={
                     '2222/tcp': ('0.0.0.0', None),
                 },
