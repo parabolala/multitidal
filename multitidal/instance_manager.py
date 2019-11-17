@@ -1,9 +1,11 @@
-import logging
-import socket
 from concurrent.futures import ThreadPoolExecutor
+import logging
 import os
 import uuid
+import socket
 import time
+
+from typing import Optional
 
 import docker
 
@@ -27,7 +29,7 @@ class Error(Exception):
 
 class MusicBox:
     id: int
-    network: str = None
+    network: Optional[docker.models.networks.Network] = None
     hostname: str
     ssh_port: int
     mp3_port: int
@@ -132,10 +134,9 @@ def wait_for_healthy_tidebox(container):
         if b'success: sshd' in output:
             logging.info('SSHd started inside tidal')
             break
-        else:
-            logging.info('SSHd still not started remaining: %d', attempts)
-            attempts -= 1
-            time.sleep(.5)
+        logging.info('SSHd still not started remaining: %d', attempts)
+        attempts -= 1
+        time.sleep(.5)
     else:
         raise Exception('Tidal container SSH port never became healthy')
 
@@ -147,10 +148,8 @@ def wait_for_healthy_webssh(container):
         if b'WebSSH2 service listening on 0.0.0.0:2222' in log_output:
             logging.info('WebSSH listening started inside tidal')
             break
-        else:
-            logging.info('WebSSH still not started remaining: %d', attempts)
-            attempts -= 1
-            time.sleep(.5)
+        logging.info('WebSSH still not started remaining: %d', attempts)
+        attempts -= 1
+        time.sleep(.5)
     else:
         raise Exception('Tidal container SSH port never became healthy')
-

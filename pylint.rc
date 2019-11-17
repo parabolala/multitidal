@@ -1,3 +1,5 @@
+[MASTER]
+jobs=4
 [MESSAGES CONTROL]
 
 disable=missing-docstring,
@@ -6,7 +8,11 @@ disable=missing-docstring,
 		too-many-arguments,
 		too-few-public-methods,
 		abstract-method,
-		fixme
+		fixme,
+		trailing-newlines,
+		attribute-defined-outside-init,
+		too-many-instance-attributes
 
+[FORMAT]
+indent-after-paren=4
 
-[VARIABLES]

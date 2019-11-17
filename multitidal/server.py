@@ -15,7 +15,7 @@ define('port', default=3000, help='run on the given port', type=int)
 def main():
     try:
         docker.client.from_env().ping()
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         logging.error("Docker not responding")
         return 1
     tornado.options.parse_command_line()
@@ -24,9 +24,10 @@ def main():
     print('Server started at port %d' % options.port)
     try:
         tornado.ioloop.IOLoop.instance().start()
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         app.stop()
         raise
+    return 0
 
 
 if __name__ == '__main__':

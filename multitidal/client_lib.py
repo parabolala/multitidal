@@ -45,13 +45,12 @@ async def send_stdin_to_ws_task(ws, on_finish_cb):
                 print('Got a ^C', end='\r\n')
                 ioloop.add_callback(on_finish_cb)
                 break
-            else:
-                ioloop.add_callback(
-                    ws.write_message,
-                    json.dumps({
-                        'client_command': 'keystrokes',
-                        'keystrokes': [int(x) for x in content],
-                    }))
+            ioloop.add_callback(
+                ws.write_message,
+                json.dumps({
+                    'client_command': 'keystrokes',
+                    'keystrokes': [int(x) for x in content],
+                }))
         print('no exc', end='\r\n')
     except asyncio.CancelledError:
         print('stdin read task cancelled', end='\r\n')
@@ -75,29 +74,22 @@ async def run_ssh(host, port, login=SSH_LOGIN, password=SSH_PASSWORD):
     args = sshpass_cmd
     print(' '.join(args))
 
-    stdin_buf=b''
     e = threading.Event()
-    master_buf =b''
+
     def stdin_read(fd):
         if not e.is_set():
             e.set()
             return SCREEN_TO_SCREEN_0_SEQ + os.read(fd, 1024)
 
-        #nonlocal stdin_buf
         b = os.read(fd, 1024)
-        #stdin_buf += b
         return b
+
     def master_read(fd):
-        #nonlocal master_buf
         b = os.read(fd, 1024)
-        #master_buf += b
         return b
     # Let Web UI connect to screen 0 first.
     time.sleep(3)
     res = pty.spawn(args, master_read=master_read, stdin_read=stdin_read)
-    #sys.stdout.write("master:\n%s\n"% master_buf)
-    #sys.stdout.write("stdin:\n%s\n"% stdin_buf)
-    #sys.stdout.flush()
     print('ssh returned %s' % res)
 
 
@@ -175,5 +167,3 @@ class Client:
                 self.finish_ws()
                 await self.connect()
                 break
-                #self.ioloop.spawn_callback(self.run_idle)
-                #print('restarted idle task')
