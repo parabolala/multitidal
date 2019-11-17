@@ -38,22 +38,6 @@ class MusicBox:
 
     _cleaned_up = True
 
-    def _tidebox_container(self):
-        t_cont = CLIENT.containers.run(
-            image='quay.io/doubledensity/tidebox:0.2',
-            ports={
-                '22/tcp': ('0.0.0.0', None),
-                '8090/tcp': ('0.0.0.0', None),
-            },
-            detach=True,
-            network=self.network.id,
-        )
-        # Resolve autoassigned ports.
-        t_cont = CLIENT.containers.get(t_cont.id)
-        logging.info('Started tidebox container.')
-        wait_for_healthy_tidebox(t_cont)
-        return t_cont
-
     def _supertidebox_container(self):
         t_cont = CLIENT.containers.run(
             image='parabolala/supertidebox:1',
@@ -78,7 +62,6 @@ class MusicBox:
             self.id = network.name
             self.network = network
 
-            #self.tidal_container = t_cont = self._tidebox_container()
             self.tidal_container = t_cont = self._supertidebox_container()
 
             w_cont = CLIENT.containers.run(

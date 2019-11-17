@@ -359,7 +359,7 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
     def open(self, session_id):  # pylint: disable=arguments-differ
         self.i = ObserveHandler.i
         ObserveHandler.i += 1
-        msg = "Web %d starting obsevation" % self.i
+        msg = "Web %d starting observation" % self.i
         if session_id != 'new':
             msg += ' of session %s' % session_id
         logging.info(msg)

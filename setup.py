@@ -12,8 +12,9 @@ setup(
         'pytest-mypy',
     ],
     install_requires=[
-        'tornado-6.0.3',
-        'docker-4.1.0',
+        'tornado==6.0.3',
+        'docker==4.1.0',
     ],
     tests_require=['pytest'],
+    include_package_data=True,
 )
