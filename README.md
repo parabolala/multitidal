@@ -28,6 +28,6 @@ Install multitidal code:
 
 Run the server
 
-    $ python multitidal/multitidal.py
+    $ python multitidal/server.py
 
 Open http://localhost:3000/ in your browser.

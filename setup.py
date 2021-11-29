@@ -1,20 +1,20 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
-    name='multitidal',
-    packages=find_packages(),
+    name="multitidal",
+    packages=[
+        "multitidal",
+    ],
     setup_requires=[
-        'pycodestyle==2.5.0',
-        'pytest-runner',
-        'pytest-pylint',
-        'pytest-codestyle',
-        'pytest-flake8==1.0.4',
-        'pytest-mypy',
+        "pytest-runner",
+        "pytest-pylint",
+        "pytest-flake8==1.0.4",
+        "pytest-mypy",
     ],
     install_requires=[
-        'tornado==6.0.3',
-        'docker==4.1.0',
+        "tornado==6.0.3",
+        "docker==4.1.0",
     ],
-    tests_require=['pytest'],
+    tests_require=["pytest"],
     include_package_data=True,
 )

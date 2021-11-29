@@ -17,14 +17,13 @@ class Error(Exception):
 
 
 class Application(tornado.web.Application):
-
     def __init__(self):
         self._sc = SessionsController()
         base_path = os.path.dirname(os.path.abspath(__file__))
         settings = dict(
             debug=True,
-            template_path=os.path.join(base_path, 'templates'),
-            static_path=os.path.join(base_path, 'media'),
+            template_path=os.path.join(base_path, "templates"),
+            static_path=os.path.join(base_path, "media"),
         )
         handlers = [
             (r"/console", KeyboardHandler, dict(sc=self._sc)),
@@ -32,8 +31,11 @@ class Application(tornado.web.Application):
             (r"/list", ListHandler, dict(sc=self._sc)),
             (r"/watch_list", WatchListHandler, dict(sc=self._sc)),
             (r"/observe/(new|\d+)?", ObserveHandler, dict(sc=self._sc)),
-            (r"/media/(.*)", tornado.web.StaticFileHandler,
-             dict(path=settings['static_path'])),
+            (
+                r"/media/(.*)",
+                tornado.web.StaticFileHandler,
+                dict(path=settings["static_path"]),
+            ),
         ]
         tornado.web.Application.__init__(self, handlers, **settings)
         tornado.autoreload.add_reload_hook(self.stop)
@@ -43,7 +45,6 @@ class Application(tornado.web.Application):
 
 
 class SessionObserver(abc.ABC):
-
     @abc.abstractmethod
     def on_session_state_change(self, session, state):
         raise NotImplementedError()
@@ -75,23 +76,23 @@ class KeyboardHandler(tornado.websocket.WebSocketHandler, SessionObserver):
     def on_message(self, message):
         logging.info("message from %s: %s", self.i, message)
         msg = json.loads(message)
-        if msg['client_command'] == 'keystrokes':
+        if msg["client_command"] == "keystrokes":
             self._sc.on_keystrokes(self._session)
 
     def on_session_state_change(self, session, state):
         if state == Session.RUNNING:
             host, port = session.get_ssh_hostport()
             resp = {
-                'mode': 'ssh',
-                'ssh': {
-                    'host': host,
-                    'port': port,
+                "mode": "ssh",
+                "ssh": {
+                    "host": host,
+                    "port": port,
                 },
-                'audio': session.get_mp3_url(),
+                "audio": session.get_mp3_url(),
             }
         else:
             resp = {
-                'mode': 'idle',
+                "mode": "idle",
             }
         logging.info("Sending ssh details to keyboard client: %s", str(resp))
         self.write_message(json.dumps(resp))
@@ -143,8 +144,8 @@ class Session:
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as e:
                 await IOLoop.instance().run_in_executor(
-                    e, functools.partial(self._musicbox.start,
-                                         hostname=self._hostname))
+                    e, functools.partial(self._musicbox.start, hostname=self._hostname)
+                )
         except (Error, instance_manager.Error) as e:
             self._change_state(self.FAILED)
             raise Error("Failed to start session: %s" % str(e))
@@ -168,20 +169,21 @@ class Session:
         return self._keyboard is not None
 
     def get_mp3_url(self):
-        return 'http://%s:%s/stream.mp3' % (
+        return "http://%s:%s/stream.mp3" % (
             self._musicbox.hostname,
             self._musicbox.mp3_port,
         )
 
     def get_ssh_url(self):
-        return ('http://{webssh_host}:{webssh_port}/'
-                'ssh/host/{target_host}?port={target_port}').format(
-                    webssh_host=self._hostname,
-                    webssh_port=self._musicbox.webssh_port,
-                    target_host=self._musicbox.tidal_container.
-                    attrs['Config']['Hostname'],
-                    target_port='22',
-                )
+        return (
+            "http://{webssh_host}:{webssh_port}/"
+            "ssh/host/{target_host}?port={target_port}"
+        ).format(
+            webssh_host=self._hostname,
+            webssh_port=self._musicbox.webssh_port,
+            target_host=self._musicbox.tidal_container.attrs["Config"]["Hostname"],
+            target_port="22",
+        )
 
     def get_ssh_hostport(self):
         return (self._musicbox.hostname, self._musicbox.ssh_port)
@@ -191,11 +193,11 @@ class Session:
             logging.warning("Destroying non-idle session")
 
     def to_dict(self):
-        state_map = ['idle', 'starting', 'running', 'failed', 'stopping']
+        state_map = ["idle", "starting", "running", "failed", "stopping"]
         return {
-            'id': self.i,
-            'state': state_map[self._state],
-            'kb': self.has_keyboard(),
+            "id": self.i,
+            "state": state_map[self._state],
+            "kb": self.has_keyboard(),
         }
 
 
@@ -238,8 +240,7 @@ class SessionsController:
 
     async def start_observation(self, observer, session_id) -> Session:
         if session_id is None:
-            session = Session(self,
-                              hostname=observer.request.host.split(':')[0])
+            session = Session(self, hostname=observer.request.host.split(":")[0])
             self.add_session(session)
         else:
             session = self._sessions[int(session_id)]
@@ -259,7 +260,7 @@ class SessionsController:
                 self.remove_session(session)
 
     def keyboard_connected(self, keyboard: KeyboardHandler) -> Session:
-        session = Session(self, hostname=keyboard.request.host.split(':')[0])
+        session = Session(self, hostname=keyboard.request.host.split(":")[0])
         session.set_keyboard(keyboard)
         self.add_session(session)
         self._keyboard_to_session[keyboard] = session
@@ -280,7 +281,7 @@ class SessionsController:
 
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render('index.html')
+        self.render("index.html")
 
 
 class ListHandler(tornado.web.RequestHandler):
@@ -290,14 +291,20 @@ class ListHandler(tornado.web.RequestHandler):
         self._sc = sc
 
     def get(self):
-        self.write(json.dumps([{
-            'id': s.i,
-            'kb': s.has_keyboard(),
-        }] for s in self._sc.list_sessions()))
+        self.write(
+            json.dumps(
+                [
+                    {
+                        "id": s.i,
+                        "kb": s.has_keyboard(),
+                    }
+                ]
+                for s in self._sc.list_sessions()
+            )
+        )
 
 
 class WatchListHandler(tornado.websocket.WebSocketHandler):
-
     def initialize(self, sc):
         self._sc = sc
 
@@ -308,30 +315,46 @@ class WatchListHandler(tornado.websocket.WebSocketHandler):
         self._sc.remove_list_watcher(self)
 
     def on_session_remove(self, session):
-        self.write_message(json.dumps({
-            'command': 'session_remove',
-            'session': session.to_dict(),
-        }))
+        self.write_message(
+            json.dumps(
+                {
+                    "command": "session_remove",
+                    "session": session.to_dict(),
+                }
+            )
+        )
 
     def on_session_add(self, session):
-        self.write_message(json.dumps({
-            'command': 'session_add',
-            'session': session.to_dict(),
-        }))
+        self.write_message(
+            json.dumps(
+                {
+                    "command": "session_add",
+                    "session": session.to_dict(),
+                }
+            )
+        )
 
     def on_session_state_change(self, session, unused_state):
-        self.write_message(json.dumps({
-            'command': 'session_state',
-            'session': session.to_dict(),
-        }))
+        self.write_message(
+            json.dumps(
+                {
+                    "command": "session_state",
+                    "session": session.to_dict(),
+                }
+            )
+        )
 
     def on_keystrokes(self, session):
-        self.write_message(json.dumps({
-            'command': 'keystrokes',
-            'keystrokes': {
-                'session': session.to_dict(),
-            },
-        }))
+        self.write_message(
+            json.dumps(
+                {
+                    "command": "keystrokes",
+                    "keystrokes": {
+                        "session": session.to_dict(),
+                    },
+                }
+            )
+        )
 
 
 class ObserveHandler(tornado.websocket.WebSocketHandler):
@@ -348,21 +371,25 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
         try:
             await self._sc.start_observation(self, session_id)
         except tornado.web.HTTPError:
-            self.write_message(json.dumps({
-                'status': 'unknown session',
-            }))
+            self.write_message(
+                json.dumps(
+                    {
+                        "status": "unknown session",
+                    }
+                )
+            )
         except Error as e:
-            logging.error("Failed to start observation: %s", str(e))
+            logging.exception("Failed to start observation: %s", str(e))
 
     def open(self, session_id):  # pylint: disable=arguments-differ
         self.i = ObserveHandler.i
         ObserveHandler.i += 1
         msg = "Web %d starting observation" % self.i
-        if session_id != 'new':
-            msg += ' of session %s' % session_id
+        if session_id != "new":
+            msg += " of session %s" % session_id
         logging.info(msg)
 
-        if session_id == 'new':
+        if session_id == "new":
             session_id = None
         IOLoop.instance().add_callback(self._start_observation, session_id)
 
@@ -375,9 +402,13 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
 
     def on_console_close(self):
         logging.info("Observed console closed")
-        self.write_message(json.dumps({
-            'status': 'disconnected',
-        }))
+        self.write_message(
+            json.dumps(
+                {
+                    "status": "disconnected",
+                }
+            )
+        )
 
     def on_session_state_change(self, session, state):
         if state == Session.RUNNING:
@@ -387,38 +418,49 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
                 session.get_mp3_url(),
             )
         elif state == Session.STOPPING:
-            self.write_message(json.dumps({
-                'id': session.i,
-                'status': 'disconnected',
-            }))
+            self.write_message(
+                json.dumps(
+                    {
+                        "id": session.i,
+                        "status": "disconnected",
+                    }
+                )
+            )
         elif state == Session.STARTING:
-            self.write_message(json.dumps({
-                'id': session.i,
-                'session': session.to_dict(),
-                'status': 'connecting',
-            }))
+            self.write_message(
+                json.dumps(
+                    {
+                        "id": session.i,
+                        "session": session.to_dict(),
+                        "status": "connecting",
+                    }
+                )
+            )
         elif state == Session.FAILED:
-            self.write_message(json.dumps({
-                'id': session.i,
-                'status': 'error',
-            }))
+            self.write_message(
+                json.dumps(
+                    {
+                        "id": session.i,
+                        "status": "error",
+                    }
+                )
+            )
             self.close()
         elif state == Session.IDLE:
             pass
         else:
-            logging.error("Unexpected session state in WS handler: %s",
-                          state)
+            logging.error("Unexpected session state in WS handler: %s", state)
 
     def on_connection_details(self, session, ssh_url, mp3_url):
         resp = {
-            'status': 'connected',
-            'ssh': {
-                'url': ssh_url,
+            "status": "connected",
+            "ssh": {
+                "url": ssh_url,
             },
-            'mp3': {
-                'url': mp3_url,
+            "mp3": {
+                "url": mp3_url,
             },
-            'session': session.to_dict(),
+            "session": session.to_dict(),
         }
         logging.info("Sending ssh details to web client: %s", str(resp))
         self.write_message(json.dumps(resp))
