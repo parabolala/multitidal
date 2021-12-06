@@ -1,15 +1,13 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="multitidal",
-    packages=[
-        "multitidal",
-    ],
+    packages=find_packages(),
     setup_requires=[
-        "pytest-runner",
-        "pytest-pylint",
-        "pytest-flake8==1.0.4",
-        "pytest-mypy",
+        "pytest-runner==5.3.1",
+        "pytest-pylint==0.18.0",
+        "pytest-mypy==0.8.1",
+        "pytest-black==0.3.12",
     ],
     install_requires=[
         "tornado==6.0.3",

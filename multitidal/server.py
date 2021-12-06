@@ -9,7 +9,7 @@ from tornado.options import define, options
 
 from multitidal import server_lib
 
-define('port', default=3000, help='run on the given port', type=int)
+define("port", default=3000, help="run on the given port", type=int)
 
 
 def main():
@@ -21,7 +21,7 @@ def main():
     tornado.options.parse_command_line()
     app = server_lib.Application()
     app.listen(options.port)
-    print('Server started at port %d' % options.port)
+    print(f"Server started at port {options.port}")
     try:
         tornado.ioloop.IOLoop.instance().start()
     except Exception:  # pylint: disable=broad-except
@@ -30,5 +30,5 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

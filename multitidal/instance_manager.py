@@ -15,12 +15,13 @@ EXECUTOR = ThreadPoolExecutor(max_workers=4)
 CLIENT = docker.client.from_env()
 
 
-SSH_PORT_NAME = '22/tcp'
-MP3_PORT_NAME = '8090/tcp'
-WEBSSH_PORT_NAME = '2222/tcp'
+SSH_PORT_NAME = "22/tcp"
+MP3_PORT_NAME = "8090/tcp"
+WEBSSH_PORT_NAME = "2222/tcp"
 
-WEBSSH_CONFIG_PATH = os.path.join(os.path.dirname(__file__),
-                                  'resources/webssh_config.json')
+WEBSSH_CONFIG_PATH = os.path.join(
+    os.path.dirname(__file__), "resources/webssh_config.json"
+)
 
 
 class Error(Exception):
@@ -42,18 +43,18 @@ class MusicBox:
 
     def _supertidebox_container(self):
         t_cont = CLIENT.containers.run(
-            image='parabolala/supertidebox:1',
+            image="parabolala/supertidebox:1",
             ports={
-                '22/tcp': ('0.0.0.0', None),
-                '8090/tcp': ('0.0.0.0', None),
+                "22/tcp": ("0.0.0.0", None),
+                "8090/tcp": ("0.0.0.0", None),
             },
             detach=True,
             network=self.network.id,
-            shm_size='128m',
+            shm_size="128m",
         )
         # Resolve autoassigned ports.
         t_cont = CLIENT.containers.get(t_cont.id)
-        logging.info('Started tidebox container.')
+        logging.info("Started tidebox container.")
         wait_for_healthy_tidebox(t_cont)
         return t_cont
 
@@ -67,21 +68,19 @@ class MusicBox:
             self.tidal_container = t_cont = self._supertidebox_container()
 
             w_cont = CLIENT.containers.run(
-                image='parabolala/webssh2:1',
+                image="parabolala/webssh2:1",
                 ports={
-                    '2222/tcp': ('0.0.0.0', None),
+                    "2222/tcp": ("0.0.0.0", None),
                 },
                 detach=True,
                 network=network.id,
                 volumes={
-                    WEBSSH_CONFIG_PATH: {
-                        'bind': '/usr/src/config.json',
-                        'mode': 'ro'},
+                    WEBSSH_CONFIG_PATH: {"bind": "/usr/src/config.json", "mode": "ro"},
                 },
             )
             # Resolve autoassigned ports.
             w_cont = CLIENT.containers.get(w_cont.id)
-            logging.info('Started webssh2 container')
+            logging.info("Started webssh2 container")
             wait_for_healthy_webssh(w_cont)
             self.webssh_container = w_cont
 
@@ -91,7 +90,7 @@ class MusicBox:
             self.webssh_port = get_port(w_cont, WEBSSH_PORT_NAME)
         except Exception as e:
             self.stop()
-            raise Error("Failed to start container: %s" % str(e))
+            raise Error("Failed to start container") from e
 
     def stop(self):
         if self._cleaned_up:
@@ -99,12 +98,12 @@ class MusicBox:
         self._cleaned_up = True
 
         if self.tidal_container:
-            logging.info('Stopping tidal container')
+            logging.info("Stopping tidal container")
             self.tidal_container.stop()
             self.tidal_container.remove()
             self.tidal_container = None
         if self.webssh_container:
-            logging.info('Stopping webssh container')
+            logging.info("Stopping webssh container")
             self.webssh_container.stop()
             self.webssh_container.remove()
         if self.network:
@@ -116,12 +115,12 @@ class MusicBox:
 
 
 def get_port(container, port_name):
-    return int(container.ports[port_name][0]['HostPort'])
+    return int(container.ports[port_name][0]["HostPort"])
 
 
 def check_port_open(port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = sock.connect_ex(('127.0.0.1', port))
+    result = sock.connect_ex(("127.0.0.1", port))
     sock.close()
     return result == 0
 
@@ -129,27 +128,26 @@ def check_port_open(port):
 def wait_for_healthy_tidebox(container):
     attempts = 30
     while attempts > 0:
-        unused_exit_code, output = container.exec_run([
-            'cat', '/tmp/supervisord.log'])
-        if b'success: sshd' in output:
-            logging.info('SSHd started inside tidal')
+        unused_exit_code, output = container.exec_run(["cat", "/tmp/supervisord.log"])
+        if b"success: sshd" in output:
+            logging.info("SSHd started inside tidal")
             break
-        logging.info('SSHd still not started remaining: %d', attempts)
+        logging.info("SSHd still not started remaining: %d", attempts)
         attempts -= 1
-        time.sleep(.5)
+        time.sleep(0.5)
     else:
-        raise Exception('Tidal container SSH port never became healthy')
+        raise Exception("Tidal container SSH port never became healthy")
 
 
 def wait_for_healthy_webssh(container):
     attempts = 30
     while attempts > 0:
         log_output = container.logs()
-        if b'WebSSH2 service listening on 0.0.0.0:2222' in log_output:
-            logging.info('WebSSH listening started inside tidal')
+        if b"WebSSH2 service listening on 0.0.0.0:2222" in log_output:
+            logging.info("WebSSH listening started inside tidal")
             break
-        logging.info('WebSSH still not started remaining: %d', attempts)
+        logging.info("WebSSH still not started remaining: %d", attempts)
         attempts -= 1
-        time.sleep(.5)
+        time.sleep(0.5)
     else:
-        raise Exception('Tidal container SSH port never became healthy')
+        raise Exception("Tidal container SSH port never became healthy")

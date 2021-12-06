@@ -15,13 +15,14 @@ Multitidal runs a python web-server that drives docker containers. An individual
 
 Set up a python virtual environment:
 
-    $ mkvirtualenv multitidal
+    $ python -m venv .venv
+	$ source .venv/bin/activate
 
 Install multitidal code:
 
     $ pip install -e .
 
-(Optional) Prefetch docker images. Otherwise they'll be downloaded when the first session starts. Might take a few minutes:
+Prefetch docker images. Otherwise they'll be downloaded when the first session starts. Might take a few minutes:
 
     $ docker pull parabolala/supertidebox:1
     $ docker pull parabolala/webssh2:1

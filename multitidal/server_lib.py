@@ -148,7 +148,7 @@ class Session:
                 )
         except (Error, instance_manager.Error) as e:
             self._change_state(self.FAILED)
-            raise Error("Failed to start session: %s" % str(e))
+            raise Error(f"Failed to start session: {e}") from e
         self._change_state(self.RUNNING)
 
     async def stop(self):
@@ -169,20 +169,15 @@ class Session:
         return self._keyboard is not None
 
     def get_mp3_url(self):
-        return "http://%s:%s/stream.mp3" % (
-            self._musicbox.hostname,
-            self._musicbox.mp3_port,
+        return (
+            f"http://{self._musicbox.hostname}:{self._musicbox.mp3_port}/" "stream.mp3"
         )
 
     def get_ssh_url(self):
         return (
-            "http://{webssh_host}:{webssh_port}/"
-            "ssh/host/{target_host}?port={target_port}"
-        ).format(
-            webssh_host=self._hostname,
-            webssh_port=self._musicbox.webssh_port,
-            target_host=self._musicbox.tidal_container.attrs["Config"]["Hostname"],
-            target_port="22",
+            f"http://{self._hostname}:{self._musicbox.webssh_port}/ssh/host/"
+            + f'{self._musicbox.tidal_container.attrs["Config"]["Hostname"]}'
+            + "?port=22"
         )
 
     def get_ssh_hostport(self):
@@ -240,7 +235,10 @@ class SessionsController:
 
     async def start_observation(self, observer, session_id) -> Session:
         if session_id is None:
-            session = Session(self, hostname=observer.request.host.split(":")[0])
+            session = Session(
+                self,
+                hostname=observer.request.host.split(":")[0],
+            )
             self.add_session(session)
         else:
             session = self._sessions[int(session_id)]
@@ -384,9 +382,9 @@ class ObserveHandler(tornado.websocket.WebSocketHandler):
     def open(self, session_id):  # pylint: disable=arguments-differ
         self.i = ObserveHandler.i
         ObserveHandler.i += 1
-        msg = "Web %d starting observation" % self.i
+        msg = f"Web {self.i} starting observation"
         if session_id != "new":
-            msg += " of session %s" % session_id
+            msg += f" of session {session_id}"
         logging.info(msg)
 
         if session_id == "new":
