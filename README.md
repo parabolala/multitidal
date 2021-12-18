@@ -24,7 +24,7 @@ Install multitidal code:
 
 Prefetch docker images. Otherwise they'll be downloaded when the first session starts. Might take a few minutes:
 
-    $ docker pull parabolala/supertidebox:1
+    $ docker pull parabolala/supertidebox:3
     $ docker pull parabolala/webssh2:1
 
 Run the server

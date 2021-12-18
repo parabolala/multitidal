@@ -23,6 +23,9 @@ WEBSSH_CONFIG_PATH = os.path.join(
     os.path.dirname(__file__), "resources/webssh_config.json"
 )
 
+SUPERTIDEBOX_IMAGE = "parabolala/supertidebox:3"
+WEBSSH2_IMAGE = "parabolala/webssh2:1"
+
 
 class Error(Exception):
     pass
@@ -43,7 +46,7 @@ class MusicBox:
 
     def _supertidebox_container(self):
         t_cont = CLIENT.containers.run(
-            image="parabolala/supertidebox:1",
+            image=SUPERTIDEBOX_IMAGE,
             ports={
                 "22/tcp": ("0.0.0.0", None),
                 "8090/tcp": ("0.0.0.0", None),
@@ -68,7 +71,7 @@ class MusicBox:
             self.tidal_container = t_cont = self._supertidebox_container()
 
             w_cont = CLIENT.containers.run(
-                image="parabolala/webssh2:1",
+                image=WEBSSH2_IMAGE,
                 ports={
                     "2222/tcp": ("0.0.0.0", None),
                 },
