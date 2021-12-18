@@ -303,6 +303,9 @@ class ListHandler(tornado.web.RequestHandler):
 
 
 class WatchListHandler(tornado.websocket.WebSocketHandler):
+    def check_origin(self, origin):
+        return True
+
     def initialize(self, sc):
         self._sc = sc
 

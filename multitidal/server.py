@@ -9,7 +9,7 @@ from tornado.options import define, options
 
 from multitidal import server_lib
 
-define("port", default=3000, help="run on the given port", type=int)
+define("port", default=3001, help="run on the given port", type=int)
 
 
 def main():

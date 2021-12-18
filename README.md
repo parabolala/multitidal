@@ -31,4 +31,4 @@ Run the server
 
     $ python multitidal/server.py
 
-Open http://localhost:3000/ in your browser.
+Open http://localhost:3001/ in your browser.
